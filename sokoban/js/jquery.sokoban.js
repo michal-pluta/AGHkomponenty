@@ -281,19 +281,36 @@
         $( window ).scrollTop( sc );
       }
       if ( !this.boxesLeft ) { // room is solved
+        var event = document.createEvent('Event');
+        event.initEvent('won-game', true, true);
+        document.dispatchEvent(event);
         this.level.trigger( 'solved' );
         this.level.addClass( _CLS + 'solved' );
         this.undoBuffer = [];
       }
+    },
+
+    lost: function(context){
+      context.level.trigger( 'solved' );
+      context.level.addClass( _CLS + 'lost')
+      context.undoBuffer = [];
     }
+
+
   }
+
+   
+  
+
   
   $.fn.sokoban = function () {
     return this.each(function(){
       var elm = $( this ),
           ctl = elm.data( 'sokoban' );
       if ( !ctl && !elm.children().length ) {
-        elm.data( 'sokoban', new Sokoban( this ) );
+        var sokobano = new Sokoban(this);
+        document.addEventListener('lost-event', function(){sokobano.lost(sokobano)});
+        elm.data( 'sokoban', sokobano );
       }
     });
   };

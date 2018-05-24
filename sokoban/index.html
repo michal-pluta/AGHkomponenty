@@ -1,80 +1,149 @@
-<!DOCTYPE html>
-<html lang="is">
-<head>
-  <meta charset=utf-8 />
+<!doctype html>
+<html>
+	<head>
+		<meta charset=utf-8 />
 
-  <title>Sōkoban: Microban levels</title>
-  
-  <link rel="stylesheet" media="screen" href="css/screen.css">
-  <link rel="stylesheet" media="screen" href="css/sokoban.css">
+		  <title>Sōkoban: Microban levels</title>
+		  
+		  <link rel="stylesheet" media="screen" href="css/screen.css">
+		  <link rel="stylesheet" media="screen" href="css/sokoban.css">
 
-  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
-  <script src="js/jquery.processEach.js"></script>
-  <script src="js/jquery.sokoban.js"></script>
-  <script>
-    jQuery(function(){ 
+		  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+		  <script src="js/jquery.processEach.js"></script>
+		  <script src="js/jquery.sokoban.js"></script>
+		  <script>
+		    jQuery(function(){ 
 
-      var levels = $( 'pre.sokoban.level' );
-      
-      levels
-        .processEach(function(){
-          $( this ).sokoban();
-        })
-        .bind( 'keydown', function (e) {
-          if ( e.keyCode == 9 ) { // tab
-            var i = (levels.length + ( levels.index( this ) + (e.shiftKey ? -1 : 1) ) ) % levels.length;
-            var o = levels.eq( i ).find( '.soko-room:first' ).focus();
-            $( window ).scrollTop( levels.eq( i ).offset().top );
-          }
-        })
-        .eq( 0 )
-          .find( '.soko-room:first' )
-          .focus()
-          ;
+		      var levels = $( 'pre.sokoban.level' );
+		      
+		      levels
+		        .processEach(function(){
+		          $( this ).sokoban();
+		        })
+		        .bind( 'keydown', function (e) {
+		          if ( e.keyCode == 9 ) { // tab
+		            var i = (levels.length + ( levels.index( this ) + (e.shiftKey ? -1 : 1) ) ) % levels.length;
+		            var o = levels.eq( i ).find( '.soko-room:first' ).focus();
+		            $( window ).scrollTop( levels.eq( i ).offset().top );
+		          }
+		        })
+		        .eq( 0 )
+		          .find( '.soko-room:first' )
+		          .focus()
+		          ;
 
-    });
-  </script>
-</head>
-<body>
-<div id="top">
+		    });
+		  </script>
+	    <script>
 
-<h1><a href=".">Sokoban</a>: Microban levels</h1>
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/sokoban/config', true);
+        xhr.onreadystatechange = function(){
+            if(xhr.readyState == XMLHttpRequest.DONE) {
+                var json = xhr.responseText;
+                obj = JSON.parse(json);
+            }
+        }
+        xhr.send(null);
 
-<div id="info">
-  <dl>
-    <dt lang="jp"><strong>Sōkoban (倉庫番)</strong></dt>
-    <dd>(<abbr title="noun">n</abbr>) warehouseman; storekeeper</dd>
-  </dl>
-  <p>Sokoban was created in 1980 by <em>Hiroyuki Imabayashi</em>, and was published 
-     in 1982 by <em>Thinking Rabbit</em>, a software house based in Takarazuka, Japan.</p>
-  <p>It spawned a genre of puzzle games, including the best selling 
-     <a href="http://en.wikipedia.org/wiki/Chip%27s_Challenge">Chips Challenge</a>, 
-     <i>Stone Age</i>, and many others, in addition to having been cloned and ported to 
-     almost all computer and operating systems in existance.</p>
-  <hr>
-</div>
+        //TEST data
+        /*obj = {
+            group: 4,
+            nick: 'Mike',
+            age: 10
+        }*/
+        //
 
-<div id="instructions">
-  <h2>How to play:</h2>
-  <noscript>
-    <p>You need JavaScript to play the game.</p>
-  </noscript>
-  <p>Move the <em>warehouseman</em> using the arrow keys and push all the boxes onto the 
-     colored part of the floor. Be careful not to get the boxes stuck in an unmovable 
-     position as they are to heavy to pull. If you make a mistake you can undo it with 
-     <em>control + z</em> or <em>backspace</em> and if you want to reset the level you 
-     can do so using <em>Escape</em>.</p>
-  <hr>
-</div>
+		var gameFinished = function(score) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/game/end', true);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify({
+                result: score,
+                group: obj.group,
+                nick: obj.nick,
+                age: obj.age
+            }));
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    window.location.replace(xhr.responseText)
+                }
+            }
 
-<div id="levels">
-<pre>
-; Microban levels
-</pre>
-<hr>
-<pre class="sokoban level">
-; 1
+            //TEST data
+            /*console.log(JSON.stringify({
+                result: score,
+                group: obj.group,
+                nick: obj.nick,
+                age: obj.age
+            }));*/
+            //
+        }
 
+         var gameLost = function() {
+		    var event = document.createEvent('Event');
+		    event.initEvent('lost-event', true, true);
+		    document.dispatchEvent(event);
+		    document.getElementById('faileddiv').style.display = 'block';
+		    document.removeEventListener('won-game', gameWon);
+            gameFinished(0);
+        };
+
+         var gameWon = function() {
+            gameFinished(1);
+        };
+
+	    var startGame = function () {
+            var age = document.getElementById('input-age').value;
+            if(age > 99) {
+                age = 99;
+            } else if (age < 0) {
+                age = 1;
+            } else {
+                age = Math.floor(age);
+            }
+            if(age < 10) {
+            	var nr =Math.floor(Math.random() * 10) + 1;     // returns a number between 1 and 10
+            	var id = 'el'+nr; 
+            	console.log(id);
+                document.getElementById(id).style.display = "block"
+                document.getElementById(id).children[1].focus()
+                setTimeout(gameLost, 60000) //TODO change times
+            } else if (age < 16) {
+            	var nr =Math.floor(Math.random() * 10) + 1;    
+            	var id = 'ml'+nr; 
+            	console.log(id);
+                document.getElementById(id).style.display = "block"
+                document.getElementById(id).children[1].focus()
+                setTimeout(gameLost, 10000) //TODO change times
+            } else {
+            	var nr =Math.floor(Math.random() * 10) + 1;   
+            	var id = 'hl'+nr;
+            	console.log(id); 
+                document.getElementById(id).style.display = "block"
+                document.getElementById(id).children[1].focus()
+                setTimeout(gameLost, 10000) //TODO change times
+            }
+            document.getElementById('start-button').disabled = true;
+            document.getElementById('input-age').disabled = true;
+
+            document.addEventListener('won-game', gameWon);
+
+		};
+
+	    </script>
+	</head>
+	<body>
+		<div style="width: 512px; margin: auto">
+			<h2 style="text-align: center">Sokoban</h2>
+			<div style="margin-bottom: 12px">After starting game click on game, use arrow keys to push boxes and put them on marked places with dots.</div>
+			<div style="margin-bottom: 12px">
+				<label><b>Age: </b></label>
+				<input id="input-age" type="number" min="1" max="99">
+				<button id="start-button" onClick="startGame()">Start game!</button>
+			</div>
+			<div style="display: flex; justify-content: center; flex-direction: column; align-items: center"  id="levels">
+<pre id="el1" style="display: none" class="sokoban level">
 ####
 # .#
 #  ###
@@ -83,10 +152,7 @@
 #  ###
 ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 2
-
+<pre id="el2" style="display: none" class="sokoban level">
 ######
 #    #
 # #@ #
@@ -95,10 +161,7 @@
 #    #
 ######
 </pre>
-<hr>
-<pre class="sokoban level">
-; 3
-
+<pre id="el3" style="display: none" class="sokoban level">
   ####
 ###  ####
 #     $ #
@@ -106,10 +169,7 @@
 # . .#@ #
 #########
 </pre>
-<hr>
-<pre class="sokoban level">
-; 4
-
+<pre id="el4" style="display: none" class="sokoban level">
 ########
 #      #
 # .**$@#
@@ -117,10 +177,7 @@
 #####  #
     ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 5
-
+<pre id="el5" style="display: none" class="sokoban level">
  #######
  #     #
  # .$. #
@@ -129,10 +186,7 @@
 #      #
 ########
 </pre>
-<hr>
-<pre class="sokoban level">
-; 6
-
+<pre id="el6" style="display: none" class="sokoban level">
 ###### #####
 #    ###   #
 # $$     #@#
@@ -140,10 +194,7 @@
 #   ########
 #####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 7
-
+<pre id="el7" style="display: none" class="sokoban level">
 #######
 #     #
 # .$. #
@@ -153,10 +204,7 @@
 #  @  #
 #######
 </pre>
-<hr>
-<pre class="sokoban level">
-; 8
-
+<pre id="el8" style="display: none" class="sokoban level">
   ######
   # ..@#
   # $$ #
@@ -170,10 +218,7 @@
 ###   #
   #####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 9
-
+<pre id="el9" style="display: none" class="sokoban level">
 #####
 #.  ##
 #@$$ #
@@ -182,10 +227,7 @@
   ##.#
    ###
 </pre>
-<hr>
-<pre class="sokoban level">
-; 10
-
+<pre id="el10" style="display: none" class="sokoban level">
       #####
       #.  #
       #.# #
@@ -195,10 +237,7 @@
 #       #
 #########
 </pre>
-<hr>
-<pre class="sokoban level">
-; 11
-
+<pre id="ml1" style="display: none" class="sokoban level">
   ######
   #    #
   # ##@##
@@ -208,10 +247,7 @@
 #  ######
 ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 12
-
+<pre id="ml2" style="display: none" class="sokoban level">
 #####
 #   ##
 # $  #
@@ -221,10 +257,7 @@
   #     #
   #######
 </pre>
-<hr>
-<pre class="sokoban level">
-; 13
-
+<pre id="ml3" style="display: none" class="sokoban level">
 ####
 #. ##
 #.@ #
@@ -235,10 +268,7 @@
  #  ###
  ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 14
-
+<pre id="ml4" style="display: none" class="sokoban level">
 #######
 #     #
 # # # #
@@ -246,10 +276,7 @@
 #   ###
 #####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 15
-
+<pre id="ml5" style="display: none" class="sokoban level">
      ###
 ######@##
 #    .* #
@@ -258,10 +285,7 @@
     #   #
     #####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 16
-
+<pre id="ml6" style="display: none" class="sokoban level">
  ####
  #  ####
  #     ##
@@ -271,10 +295,7 @@
 #  .#    #
 ##########
 </pre>
-<hr>
-<pre class="sokoban level">
-; 17
-
+<pre id="ml7" style="display: none" class="sokoban level">
 #####
 # @ #
 #...#
@@ -283,10 +304,7 @@
 #    #
 ######
 </pre>
-<hr>
-<pre class="sokoban level">
-; 18
-
+<pre id="ml8" style="display: none" class="sokoban level">
 #######
 #     #
 #. .  #
@@ -297,10 +315,7 @@
   #  #
   ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 19
-
+<pre id="ml9" style="display: none" class="sokoban level">
 ########
 #   .. #
 #  @$$ #
@@ -310,10 +325,7 @@
    #  #
    ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 20
-
+<pre id="ml10" style="display: none"  class="sokoban level">
 #######
 #     ###
 #  @$$..#
@@ -323,10 +335,7 @@
   #  #
   ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 21
-
+<pre id="hl1" style="display: none" class="sokoban level">
 ####
 #  ####
 # . . #
@@ -334,10 +343,7 @@
 ##    #
  ######
 </pre>
-<hr>
-<pre class="sokoban level">
-; 22
-
+<pre id="hl2" style="display: none" class="sokoban level">
 #####
 #   ###
 #. .  #
@@ -348,10 +354,7 @@
  #  ###
  ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 23
-
+<pre id="hl3" style="display: none" class="sokoban level">
 #######
 #  *  #
 #     #
@@ -360,10 +363,7 @@
  #   #
  #####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 24
-
+<pre id="hl4" style="display: none" class="sokoban level">
 # #####
   #   #
 ###$$@#
@@ -372,10 +372,7 @@
 # . . #
 #######
 </pre>
-<hr>
-<pre class="sokoban level">
-; 25
-
+<pre id="hl5" style="display: none" class="sokoban level">
  ####
  #  ###
  # $$ #
@@ -384,10 +381,7 @@
 #   ###
 #####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 26
-
+<pre id="hl6" style="display: none" class="sokoban level">
  #####
  # @ #
  #   #
@@ -397,10 +391,7 @@
 ###  #
   ####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 27
-
+<pre id="hl7" style="display: none" class="sokoban level">
 ######
 #   .#
 # ## ##
@@ -409,10 +400,7 @@
 #.  ###
 #####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 28
-
+<pre id="hl8" style="display: none" class="sokoban level">
 #####
 #   #
 # @ #
@@ -421,10 +409,7 @@
  #    #
  ######
 </pre>
-<hr>
-<pre class="sokoban level">
-; 29
-
+<pre id="hl9" style="display: none" class="sokoban level">
      #####
      #   ##
      #    #
@@ -435,10 +420,7 @@
 #        #
 ##########
 </pre>
-<hr>
-<pre class="sokoban level">
-; 30
-
+<pre id="hl10" style="display: none" class="sokoban level">
 ####
 #  ###
 # $$ #
@@ -447,1784 +429,10 @@
 #   ##
 #####
 </pre>
-<hr>
-<pre class="sokoban level">
-; 31
-
-  ####
- ##  #
-##@$.##
-# $$  #
-# . . #
-###   #
-  #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 32
-
- ####
-##  ###
-#     #
-#.**$@#
-#   ###
-##  #
- ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 33
-
-#######
-#. #  #
-#  $  #
-#. $#@#
-#  $  #
-#. #  #
-#######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 34
-
-  ####
-###  ####
-#       #
-#@$***. #
-#       #
-#########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 35
-
-  ####
- ##  #
- #. $#
- #.$ #
- #.$ #
- #.$ #
- #. $##
- #   @#
- ##   #
-  #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 36
-
-####
-#  ############
-# $ $ $ $ $ @ #
-# .....       #
-###############
-</pre>
-<hr>
-<pre class="sokoban level">
-; 37
-
-      ###
-##### #.#
-#   ###.#
-#   $ #.#
-# $  $  #
-#####@# #
-    #   #
-    #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 38
-
-##########
-#        #
-# ##.### #
-# # $$ . #
-# . @$## #
-#####    #
-    ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 39
-
-#####
-#   ####
-# # # .#
-#    $ ###
-### #$.  #
-#   #@   #
-# # ######
-#   #
-#####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 40
-
- #####
- #   #
-##   ##
-# $$$ #
-# .+. #
-#######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 41
-
-#######
-#     #
-#@$$$ ##
-#  #...#
-##    ##
- ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 42
-
-   ####
-   #  #
-   #@ #
-####$.#
-#   $.#
-# # $.#
-#    ##
-######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 43
-
-     ####
-     # @#
-     #  #
-###### .#
-#   $  .#
-#  $$# .#
-#    ####
-###  #
-  ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 44
-'Duh!'
-
-#####
-#@$.#
-#####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 45
-
-######
-#... #
-#  $ #
-# #$##
-#  $ #
-#  @ #
-######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 46
-
- ######
-##    #
-#  ## #
-# # $ #
-#  * .#
-## #@##
- #   #
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 47
-
-  #######
-###     #
-# $ $   #
-# ### #####
-# @ . .   #
-#   ###   #
-##### #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 48
-
-######
-#  @ #
-#  # ##
-# .#  ##
-# .$$$ #
-# .#   #
-####   #
-   #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 49
-
-######
-# @  #
-# $# #
-# $  #
-# $ ##
-### ####
- #  #  #
- #...  #
- #     #
- #######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 50
-
-  ####
-###  #####
-#  $  @..#
-# $    # #
-### #### #
-  #      #
-  ########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 51
-
-####
-#  ###
-#    ###
-#  $*@ #
-### .# #
-  #    #
-  ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 52
-
-  ####
-### @#
-#  $ #
-#  *.#
-#  *.#
-#  $ #
-###  #
-  ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 53
-
- #####
-##. .##
-# * * #
-#  #  #
-# $ $ #
-## @ ##
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 54
-
-      ######
-      #    #
-  ##### .  #
-###  ###.  #
-# $  $  . ##
-# @$$ # . #
-##    #####
- ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 55
-
-########
-# @ #  #
-#      #
-#####$ #
-    #  ###
- ## #$ ..#
- ## #  ###
-    ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 56
-
-#####
-#   ###
-#  $  #
-##* . #
- #   @#
- ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 57
-
-  ####
-  #  #
-  #@ #
-  #  #
-### ####
-#    * #
-#  $   #
-#####. #
-    ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 58
-
-####
-#  ####
-#.*$  #
-# .$# #
-## @  #
- #   ##
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 59
-
-############
-#          #
-# ####### @##
-# #         #
-# #  $   #  #
-# $$ #####  #
-###  # # ...#
-  #### #    #
-       ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 60
-
- #########
- #       #
-##@##### #
-#  #   # #
-#  #   $.#
-#  ##$##.#
-##$##  #.#
-#   $  #.#
-#   #  ###
-########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 61
-
-########
-#      #
-# #### #
-# #...@#
-# ###$###
-# #     #
-#  $$ $ #
-####   ##
-   #.###
-   ###
-</pre>
-<hr>
-<pre class="sokoban level">
-; 62
-
-   ##########
-####    ##  #
-#  $$$....$@#
-#      ###  #
-#   #### ####
-#####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 63
-
-#####   ####
-#   ##### .#
-#       $  ########
-###  #### .$    @ #
-  #  #  #  ####   #
-  ####  ####  #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 64
-
- ######
-##    #
-#   $ #
-#  $$ #
-### .#####
-  ##.# @ #
-   #.  $ #
-   #. ####
-   ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 65
-
-  ######
-  #    #
-  #  $ #
- ####$ #
-## $ $ #
-#....# ##
-#     @ #
-##  #   #
- ########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 66
-
-   ###
-   #@#
- ###$###
-##  .  ##
-#  # #  #
-# #   # #
-# #   # #
-# #   # #
-#  # #  #
-## $ $ ##
- ##. .##
-  #   #
-  #   #
-  #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 67
-
-#####
-#   ##
-# #  #
-#@$*.##
-##  . #
- # $# #
- ##   #
-  #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 68
-
- ####
- #  ######
-##    $  #
-# .# $   #
-# .#$#####
-# .@ #
-######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 69
-
-####  ####
-#  ####  #
-#  #  #  #
-#  #    $##
-#  . .#$  #
-#@ ## # $ #
-#   . #   #
-###########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 70
-
-#####
-# @ ####
-#      #
-# $ $$ #
-##$##  #
-#   ####
-# ..  #
-##..  #
- ###  #
-   ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 71
-
-###########
-#     #   ###
-# $@$ # .  .#
-# ## ### ## #
-# #       # #
-# #   #   # #
-# ######### #
-#           #
-#############
-</pre>
-<hr>
-<pre class="sokoban level">
-; 72
-
-  ####
- ##  #####
- #  $  @ #
- #  $#   #
-#### #####
-#  #   #
-#    $ #
-# ..#  #
-#  .####
-#  ##
-####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 73
-
-####
-#  #####
-# $$ $ #
-#      #
-## ## ##
-#...#@#
-# ### ##
-#      #
-#  #   #
-########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 74
-
- ####
- #  #######
- #$ @#   .#
-## #$$   .#
-#  $  ##..#
-#   # #####
-###   #
-  #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 75
-
- #######
-## ....##
-#   ######
-#   $ $ @#
-###  $ $ #
-  ###    #
-    ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 76
-
- #####
-##   #
-#    #####
-#  #.#   #
-#@ #.# $ #
-#  #.#  ##
-#    #  #
-##  ##$$#
- ##     #
-  #  ####
-  ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 77
-
-##########
-# @ .... #
-#   ####$##
-## #  $ $ #
- # $      #
- #   ######
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 78
-
- #######
-##     ##
-#  $ $  #
-# $ $ $ #
-## ### ####
- #@  .....#
- ##     ###
-  #######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 79
-
- #########
- #    #  #
-## $#$#  #
-#  .$.@  #
-#  .#    #
-##########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 80
-
-####
-#  #######
-#  . ## .#
-# $#    .#
-## ## # .#
- #    #  #
- #### #  #
-  # @$ ###
-  # $$ #
-  #    #
-  ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 81
-
- #####
- #   #
- # . #
-## * #
-#  *##
-#  @##
-## $ #
- #   #
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 82
-
-#####
-#   ###
-# .   ##
-##*#$  #
-# .# $ #
-# @## ##
-#     #
-#######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 83
-
-######
-#    ##
-# $ $ ##
-## $$  #
- # #   #
- # ## ##
- #  . .#
- # @. .#
- #  ####
- ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 84
-
-########
-#  ... #
-#  ### ##
-#  # $  #
-## #@$  #
- # # $  #
- # ### #####
- #         #
- #   ###   #
- ##### #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 85
-
-       ####
- #######  #
- # $      #
- #   $ $  #
- # ########
-## # .  #
-#  # #  #
-#  @ . ##
-## # # #
- #   . #
- #######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 86
-
-    ####
-  ###  ##
- ## $   #
-## $  # #
-# @#$$  #
-# ..  ###
-# ..###
-#####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 87
-
-     ####
-######  #
-#       #
-#  ... .#
-##$######
-# $  #
-#   $###
-##  $  #
- ## @  #
-  ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 88
-
-     ####
- # ###  #
- # #    #
- # #  # #
- # #$ #.#
- # #  # # #
- # #$ #.# #
-   #  # # #
-####$ #.# #
-# @     # #
-#   #  ## #
-########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 89
-
-##########
-#   ##   #
-# $  $@# #
-#### # $ #
-   #.#  ##
- # #.# $#
- # #.   #
- # #.   #
-   ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 90
-
- ########
- #  @   #
- # $  $ #
-### ## ###
-#  $..$  #
-#   ..   #
-##########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 91
-
-###########
-#    .##  #
-# $$@..$$ #
-#   ##.   #
-###########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 92
-
-  ####
-  #  #    #####
-  #  #    #   #
-  #  ######.# #
-####  $    .  #
-#   $$# ###.# #
-#   #   # #   #
-######### #@ ##
-          #  #
-          ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 93
-
- #########
-##   #   ##
-#    #    #
-#  $ # $  #
-#   *.*   #
-####.@.####
-#   *.*   #
-#  $ # $  #
-#    #    #
-##   #   ##
- #########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 94
-
-#########
-# @ #   #
-# $ $   #
-##$### ##
-#  ...  #
-#   #   #
-######  #
-     ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 95
-
-########
-#@     #
-# .$$. #
-# $..$ #
-# $..$ #
-# .$$. #
-#      #
-########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 96
-
-  ######
-  #    #
-  #    #
-#####  #
-#   #.#####
-#   $@$   #
-#####.#   #
-   ## ## ##
-   #   $.#
-   #   ###
-   #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 97
-
-   ####
-   #  ########
-#### $ $.....#
-#   $   ######
-#@### ###
-#  $  #
-# $ # #
-## #  #
- #    #
- ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 98
-
-#####
-#   ## ####
-#  $ ### .#
-# $   $  .#
-## $#####.# ####
-# $  # # .###  #
-#    # # .#  @ #
-###  # #       #
-  #### ##     ##
-        #######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 99
-
-               #####
-               #   #
-#######  ####### # #
-#     #  #  #      #
-#  @  ####  #     ####
-#  #    ....## ####  #
-#    ##### ## $$ $ $ #
-######   #           #
-         #  ##########
-         ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 100
-
-#######
-# @#  #
-#.$   #
-#. # $##
-#.$#   #
-#. # $ #
-#  #   #
-########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 101
-'Lockdown'
-
-  #####
-  #   #
-  # # #######
-  #  *  #   #
-  ## ##   # #
-  #     #*  #
-### # # # ###
-#  *#$+   #
-# #   ## ##
-#   #  *  #
-####### # #
-      #   #
-      #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 102
-
-###########
-#....#    #
-#  #   $$ #
-#  @  ##  #
-#     ##$ #
-######  $ #
-     #    #
-     ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 103
-
-  #####
-  # . ##
-### $  #
-# . $#@#
-# #$ . #
-#  $ ###
-## . #
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 104
-
-    #####
-#####   #
-#    $  #
-#  $#$#@#
-### #   #
-  # ... #
-  ###  ##
-    #  #
-    ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 105
-
- #### ####
-##  ###  ##
-#   # #   #
-#  *. .*  #
-###$   $###
- #   @   #
-###$   $###
-#  *. .*  #
-#   # #   #
-##  ###  ##
- #### ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 106
-
- ########
- #      #
- #@   $ #
-## ###$ #
-# .....###
-# $ $ $  #
-###### # #
-     #   #
-     #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 107
-
-########
-#      #
-# $*** #
-# *  * #
-# *  * #
-# ***. #
-#     @#
-########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 108
-
-####     #####
-#  ###   #   ##
-#    #   #$ $ #
-#..# ##### #  #
-#  @    # $ $ #
-#..#         ##
-##   #########
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 109
-
-  #######
-# #     #
-# # # # #
-  # @ $ #
-### ### #
-#   ### #
-# $  ##.#
-## $  #.#
- ## $  .#
-# ## $#.#
-## ## #.#
-### #   #
-### #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 110
-
-  ####
-  #  #
-  # $####
-###. .  #
-# $ # $ #
-#  . .###
-####$ #
-   # @#
-   ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 111
-
-######
-#    ####
-#    ...#
-#    ...#
-######  #
-  #  #  #
-  # $$ ##
-  # @$  #
-  # $$  #
-  ## $# #
-   #    #
-   ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 112
-
- #####
-##   ####
-#  $$$  #
-# #   $ #
-#   $## ##
-###  #.  #
-  #  #   #
- ##### ###
- #   # ##
- # @....#
- #      #
- #   #  #
- ########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 113
-
-   #####
-  ##   #
-###  # #
-#    . #
-#  ## #####
-#  . . #  ##
-#  # @ $   ###
-#####. #  $  #
-    ####  $  #
-       ## $ ##
-        #  ##
-        #  #
-        ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 114
-
-######
-#    ###
-#  # $ #
-#  $ @ #
-## ## #####
-#  #......#
-# $ $ $ $ #
-##   ######
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 115
-
-    #####
-#####   ####
-#     #    #
-#  #.....  #
-##  ## # ###
- #$$@$$$ #
- #     ###
- #######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 116
-
-     #####
-   ###   #
-####.....#
-# @$$$$$ #
-#     # ##
-#####   #
-    #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 117
-
- #### ####
- #  ###  ##
- #      @ #
-##..###   #
-#      #  #
-#...#$  # #
-# ## $$ $ #
-#  $    ###
-####  ###
-   ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 118
-
- #####
-##   ##
-#  $  ##
-# $ $  ##
-###$# . ##
-  # # .  #
- ## ##.  #
- # @  . ##
- #   #  #
- ########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 119
-
-  ######
-  #    ##
- ## ##  #
- # $$ # #
- # @$ # #
- #    # #
-#### #  #
-#  ... ##
-#     ##
-#######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 120
-
-      ####
-#######  #
-# $      ##
-# $#####  #
-#  @#  #  #
-## ##..   #
-#  # ..####
-# $  ###
-# $###
-#  #
-####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 121
-
- ######
- # .  #
-##$.# #
-#  *  #
-# ..###
-##$ # #####
-## ## #   #
-#  #### # #
-#   @ $ $ #
-##  #     #
- ##########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 122
-
-#####
-#   ###
-# #$  #
-# $   #
-# $ $ #
-# $#  #
-#  @###
-## ########
-#      ...#
-#         #
-########..#
-       ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 123
-
-########
-#      #
-# $ $$ ########
-##### @##. .  #
-    #$  # .   #
-    #   #. . ##
-    #$# ## # #
-    #        #
-    #  ###  ##
-    #  # ####
-    ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 124
-
-##############
-#      #     #
-# $@$$ # . ..#
-## ## ### ## #
- # #       # #
- # #   #   # #
- # ######### #
- #           #
- #############
-</pre>
-<hr>
-<pre class="sokoban level">
-; 125
-
-      #####
-      #   ##
-      # $  #
-######## #@##
-# .  # $ $  #
-#        $# #
-#...#####   #
-#####   #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 126
-
- ###########
-##.......  #
-# $$$$$$$@ #
-#   # # # ##
-# # #     #
-#   #######
-#####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 127
-
-## ####
-####  ####
- # $ $.  #
-## #  .$ #
-#   ##.###
-#  $  . #
-# @ #   #
-#  ######
-####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 128
-
-  #########
-###   #   #
-# * $ . . #
-#   $ ## ##
-####*#   #
- #  @  ###
- #   ###
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 129
-
-  #########
-### @ #   #
-# * $ *.. #
-#   $ #   #
-####*#  ###
- #     ##
- #   ###
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 130
-
-#####  #####
-#   ####.. #
-# $$$      #
-#   $#  .. #
-### @#  ## #
-  #  ##    #
-  ##########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 131
-
-#####
-#   #
-# . #
-#.@.###
-##.#  #
-#  $  #
-# $   #
-##$$  #
- #  ###
- #  #
- ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 132
-
-####
-# @###
-#.*  #####
-#..#$$ $ #
-##       #
- # # ##  #
- #   #####
- #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 133
-
- #######
- #  . .###
- # . . . #
-### #### #
-#  @$  $ #
-#  $$  $ #
-####   ###
-   #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 134
-
-        ####
-#########  #
-#   ## $   #
-#  $   ##  #
-### #. .# ##
-  # #. .#$##
-  # #   #  #
-  # @ $    #
-  #  #######
-  ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 135
-
-#######
-#     #####
-# $$#@##..#
-# #       #
-#  $ # #  #
-#### $  ..#
-   ########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 136
-
- #######
- #     #
-## ###$##
-#.$   @ #
-# .. #$ #
-#.##  $ #
-#    ####
-######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 137
-
-       ####
-      ##  ###
-####  #  $  #
-#  #### $ $ #
-#   ..# #$  #
-#  #   @  ###
-## #..# ###
- # ## # #
- #      #
- ########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 138
-
-  ####
-###  #
-#    ###
-# # . .#
-# @ ...####
-# # # #   ##
-#   # $$   #
-#####  $ $ #
-    ##$ # ##
-     #    #
-     ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 139
-
- ####
-##  ####
-#   ...#
-#   ...#
-#   # ##
-#   #@ #### ####
-##### $   ###  #
-    #  ##$ $   #
-   ###     $$  #
-   # $  ##   ###
-   #    ######
-   ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 140
-
-######## #####
-#  #   ###   #
-#      ## $  #
-#.# @ ## $  ##
-#.#   # $  ##
-#.#    $  ##
-#. ## #####
-##    #
- ######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 141
-
-  ########
-  #  # . #
-  #   .*.#
-  #  # * #
-####$##.##
-#      $ #
-# $ ## $ #
-#   @#   #
-##########
-</pre>
-<hr>
-<pre class="sokoban level">
-; 142
-
-  ####
-  #  #
-  #  ####
-###$.$  #
-#  .@.  #
-#  $.$###
-####  #
-   #  #
-   ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 143
-
-####
-#  ####
-# $   #
-# .#  #
-# $# ##
-# .  #
-#### #
-   # #
- ### ###
- #  $  #
-## #$# ##
-# $ @ $ #
-# ..#.. #
-###   ###
-  #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 144
-
-   ####
- ###  #####
- # $$ #   #
- # $ . .$$##
- # .. #. $ #
-### #** .  #
-#  . **# ###
-# $ .# .. #
-##$$.@. $ #
- #   # $$ #
- #####  ###
-     ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 145
-
-   #####
-   # @ #
-  ##   ##
-###.$$$.###
-#  $...$  #
-#  $.#.$  #
-#  $...$  #
-###.$$$.###
-  ##   ##
-   #   #
-   #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 146
-
- #######
-##  .  ##
-# .$$$. #
-# $. .$ #
-#.$ @ $.#
-# $. .$ #
-# .$$$. #
-##  .  ##
- #######
-</pre>
-<hr>
-<pre class="sokoban level">
-; 147
-'reduction of (Mas Sasquatch 8)'
-
-       #####
-########   #
-#.   .  @#.#
-#  ###     #
-## $  #    #
- # $   #####
- # $#  #
- ## #  #
-  #   ##
-  #####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 148
-'from (Original 18)'
-
-###########
-#  .  #   #
-# #.  @   #
-#  #..# #######
-##  ## $$ $ $ #
- ##           #
-  #############
-</pre>
-<hr>
-<pre class="sokoban level">
-; 149
-'from (Boxxle 43)'
-
- ####
-##  ###
-#@$   #
-### $ #
- #  ######
- #  $....#
- #  # ####
- ## # #
- # $# #
- #    #
- #  ###
- ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 150
-'from (Original 47)'
-
-     ####
- #####  #
- #     $#######
-## ## ..#  ...#
-# $ $$#$  @   #
-#        ###  #
-#######  # ####
-      ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 151
-'from (Original 47)'
-
-   ####
-   #  #
- ###  #
-##  $ #
-#   # #
-# #$$ ######
-# #   #   .#
-#  $  @   .#
-###  ####..#
-  ####  ####
-</pre>
-<hr>
-<pre class="sokoban level">
-; 152
-'reduced (Mas Sasquatch 23)'
-
-###### ####
-#     #    #
-#.##  #$##  #
-#   #     #  #
-#$  # ###  #  #
-# #      #  # #
-# # ####  # # #
-#. @    $ * . #
-###############
-</pre>
-<hr>
-<pre class="sokoban level">
-; 153
-'reduction of (Revenge 306)'
-
-#############
-#.# @#  #   #
-#.#$$   # $ #
-#.#  # $#   #
-#.# $#  # $##
-#.#  # $#  #
-#.# $#  # $#
-#..  # $   #
-#..  #  #  #
-############
-</pre>
-<hr>
-<pre class="sokoban level">
-; 154
-'Take the long way home.'
-
- ############################
- #                          #
- # ######################## #
- # #                      # #
- # # #################### # #
- # # #                  # # #
- # # # ################ # # #
- # # # #              # # # #
- # # # # ############ # # # #
- # # # # #            # # # #
- # # # # # ############ # # #
- # # # # #              # # #
- # # # # ################ # #
- # # # #                  # #
-##$# # #################### #
-#. @ #                      #
-#############################
-</pre>
-<hr>
-<pre class="sokoban level">
-; 155
-'The Dungeon'
-
-    ######               ####
-#####*#  #################  ##
-#   ###                      #
-#        ########  ####  ##  #
-### ####     #  ####  ####  ##
-#*# # .# # # #     #     #   #
-#*# #  #     # ##  # ##  ##  #
-###    ### ###  # ##  # ##  ##
- #   # #*#      #     # #    #
- #   # ###  #####  #### #    #
- #####   #####  ####### ######
- #   # # #**#               #
-## # #   #**#  #######  ##  #
-#    #########  #    ##### ###
-# #             # $        #*#
-#   #########  ### @#####  #*#
-#####       #### ####   ######
-</pre>
+<div id='faileddiv' style="display: none">
+<b>FAILED!</b>
 </div>
-
-<div id="footer">
-
-<hr>
-
-<p>This version of Sokoban was written by <a href="http://borgar.net">Borgar Þorsteinsson</a> one 
-   boring evening in 2009. It is licenced under the <a href="http://www.gnu.org/licenses/gpl-3.0.html" rel="licence">GNU General Public Licence v3.0</a>.</p>
-</div>
-
-</div>
-</body>
+			</div>
+		</div>
+	</body>
 </html>

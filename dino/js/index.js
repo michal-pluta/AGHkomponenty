@@ -770,6 +770,10 @@
          * Game over state.
          */
         gameOver: function () {
+            var event = document.createEvent('Event');
+            event.initEvent('lost-game', true, true);
+            document.dispatchEvent(event);
+
             this.playSound(this.soundFx.HIT);
             vibrate(200);
 
