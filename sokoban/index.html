@@ -42,7 +42,7 @@
             if(xhr.readyState == XMLHttpRequest.DONE) {
                 var json = xhr.responseText;
                 obj = JSON.parse(json);
-                startGame();
+                //startGame();
             }
         }
         xhr.send(null);
@@ -136,14 +136,14 @@
                 age = Math.floor(age);
             }
             if(age < 10) {
-            	var nr =Math.floor(Math.random() * 10) + 1;     // returns a number between 1 and 10
+            	var nr = Math.floor(Math.random() * 10) + 1;     // returns a number between 1 and 10
             	var id = 'el'+nr; 
             	console.log(id);
                 document.getElementById(id).style.display = "block"
                 document.getElementById(id).children[1].focus()
                 //setTimeout(gameLost, 60000) //TODO change times
             } else if (age < 16) {
-            	var nr =Math.floor(Math.random() * 10) + 1;    
+            	var nr = Math.floor(Math.random() * 10) + 1;    
             	var id = 'ml'+nr; 
             	console.log(id);
                 document.getElementById(id).style.display = "block"
