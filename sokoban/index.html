@@ -82,7 +82,7 @@
 
 		var gameFinished = function(score) {
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/game/end', true);
+            xhr.open('POST', '/sokoban/end', true);
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
             xhr.send(JSON.stringify({
                 result: score,
